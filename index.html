@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Heart to Rose Morphing</title>
+    <title>3D Heart to Rose</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; }
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; }
         canvas { display: block; }
-        #info { position: absolute; top: 10px; width: 100%; text-align: center; color: #ff69b4; font-family: 'Segoe UI', sans-serif; pointer-events: none; text-shadow: 0 0 10px #ff1493; }
+        #info { 
+            position: absolute; top: 20px; width: 100%; text-align: center; 
+            color: #ffb6c1; font-family: 'Arial', sans-serif; pointer-events: none;
+            text-shadow: 0 0 15px #ff69b4; font-size: 14px; letter-spacing: 2px;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Ketuk Layar: Hati Pink &rarr; Mawar 3D</div>
+    <div id="info">TAP UNTUK TRANSFORMASI<br>HATI PINK &rarr; MAWAR MERAH</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
 
     <script>
         let scene, camera, renderer, points;
-        const particleCount = 10000; // Ditambah agar lebih detail
+        const particleCount = 12000; 
         let heartCoords = [];
         let roseCoords = [];
         let isRose = false;
@@ -26,31 +30,32 @@
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.z = 15;
+            camera.position.z = 18;
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
 
-            // 1. Koordinat Hati Pink (3D Heart Formula)
+            // 1. Koordinat Hati Pink (3D Mathematical Heart)
             for (let i = 0; i < particleCount; i++) {
-                const t = Math.random() * Math.PI * 2;
-                const p = Math.random() * Math.PI;
-                // Rumus Hati 3D
-                const x = 16 * Math.pow(Math.sin(t), 3) * Math.sin(p);
-                const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * Math.sin(p);
-                const z = 8 * Math.cos(p);
-                heartCoords.push(x * 0.3, y * 0.3, z * 0.3);
+                const phi = Math.random() * Math.PI * 2;
+                const theta = Math.random() * Math.PI;
+                // Rumus Jantung 3D yang lebih tebal
+                const x = 16 * Math.pow(Math.sin(phi), 3) * Math.sin(theta);
+                const y = (13 * Math.cos(phi) - 5 * Math.cos(2*phi) - 2 * Math.cos(3*phi) - Math.cos(4*phi)) * Math.sin(theta);
+                const z = 8 * Math.cos(theta);
+                heartCoords.push(x * 0.4, y * 0.4, z * 0.4);
             }
 
-            // 2. Koordinat Mawar (Rose Curve/Spherical Harmonics style)
+            // 2. Koordinat Mawar (Detailed Rose Spiral)
             for (let i = 0; i < particleCount; i++) {
-                const t = (i / particleCount) * Math.PI * 20; // spiral
-                const r = 5 * Math.sin(0.5 * t);
-                const x = r * Math.cos(t) * (1 - i/particleCount);
-                const y = r * Math.sin(t) * (1 - i/particleCount) + (i/particleCount * 5); // batang/pusat
-                const z = 2 * Math.cos(t * 0.5) + (Math.random() - 0.5);
-                roseCoords.push(x, y - 2, z);
+                const t = (i / particleCount) * Math.PI * 30; // spiral kelopak
+                const r = 0.5 * Math.sqrt(i) * 0.15;
+                const x = r * Math.cos(t) * Math.sin(i);
+                const y = r * Math.sin(t) * Math.cos(i) + (Math.pow(r, 1.5) * 0.2); 
+                const z = (Math.sin(r) * 2) + (Math.random() * 0.5);
+                roseCoords.push(x * 2, y * 2 - 4, z * 2);
             }
 
             const geometry = new THREE.BufferGeometry();
@@ -58,39 +63,39 @@
             geometry.setAttribute('position', new THREE.BufferAttribute(initialPos, 3));
 
             const material = new THREE.PointsMaterial({
-                color: 0xff69b4, // Hot Pink
+                color: 0xff69b4, 
                 size: 0.04,
                 transparent: true,
-                opacity: 0.8,
+                opacity: 0.9,
                 blending: THREE.AdditiveBlending
             });
 
             points = new THREE.Points(geometry, material);
             scene.add(points);
 
+            // Event Listeners
             window.addEventListener('click', morph);
-            window.addEventListener('touchstart', morph);
+            window.addEventListener('touchstart', (e) => { e.preventDefault(); morph(); });
         }
 
         function morph() {
             const target = isRose ? heartCoords : roseCoords;
             const posAttr = points.geometry.attributes.position;
             
-            // Animasi transisi posisi
             for (let i = 0; i < particleCount; i++) {
                 gsap.to(posAttr.array, {
                     [i * 3]: target[i * 3],
                     [i * 3 + 1]: target[i * 3 + 1],
                     [i * 3 + 2]: target[i * 3 + 2],
                     duration: 2.5,
-                    ease: "expo.inOut",
+                    ease: "power4.inOut",
                     onUpdate: () => posAttr.needsUpdate = true
                 });
             }
             
-            // Perubahan warna: Pink cerah (Hati) ke Merah Mawar (Mawar)
+            // Transisi Warna: Pink (Hati) ke Merah Tua (Mawar)
             gsap.to(points.material.color, {
-                r: isRose ? 1 : 0.9,
+                r: isRose ? 1.0 : 0.8,
                 g: isRose ? 0.4 : 0.0,
                 b: isRose ? 0.7 : 0.1,
                 duration: 2
@@ -100,17 +105,4 @@
         }
 
         function animate() {
-            requestAnimationFrame(animate);
-            points.rotation.y += 0.01;
-            renderer.render(scene, camera);
-        }
 
-        // Responsif saat layar diputar/resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
